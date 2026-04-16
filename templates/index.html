@@ -3,54 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis | Advanced Face Recognition Lock</title>
+    <title>PROJECT O.M.E.G.A. | VAULT SECURE TERMINAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div class="brand">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-            <h1>Aegis OS</h1>
-        </div>
-        <div class="status-indicator status-locked" id="lockStatus">
-            <div class="status-dot"></div>
-            <span class="status-text">SYSTEM LOCKED</span>
-        </div>
-    </header>
-
-    <main class="main-view">
-        <div id="systemMessage" class="system-message">Face authenticated. Welcome.</div>
-        
-        <div class="video-container">
-            <video id="webcam" autoplay playsinline></video>
-            <canvas id="canvas" style="display: none;"></canvas>
-            
-            <div class="scan-overlay" id="scanOverlay">
-                <div class="scan-line"></div>
-                <div class="face-reticle">
-                    <div class="corners"></div>
+<div class="monitor-wrapper">
+    <div class="scanline"></div>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary-red)" stroke-width="2" stroke-linecap="square">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <h1>OMEGA VAULT SUBSYSTEM</h1>
+            </div>
+            <div class="header-right">
+                <div id="hasIdentity" class="badge">NO MASTER BIOMETRIC SET</div>
+                <div class="status-indicator status-locked" id="lockStatus">
+                    <div class="status-hex"></div>
+                    <span class="status-text">VAULT SECURED</span>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="controls-overlay">
-            <button class="btn btn-scan" id="btnScan">Initiate Scan</button>
-            <button class="btn btn-lock" id="btnLock">Secure Lock</button>
-        </div>
-    </main>
+        <main class="main-view">
+            <div id="systemMessage" class="system-message">INITIALIZING...</div>
+            
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline></video>
+                <div class="hud-overlay">
+                    <div class="hud-top-left">CAM_01 REC</div>
+                    <div class="hud-top-right">48.24°N 16.38°E</div>
+                    <div class="hud-bottom-left">SYS_TEMP: OPTIMAL</div>
+                    <div class="hud-bottom-right">SECURE_LINK: ACTIVE</div>
+                </div>
+                <canvas id="canvas" style="display: none;"></canvas>
+                
+                <div class="scan-overlay" id="scanOverlay">
+                    <div class="scan-grid"></div>
+                    <div class="scan-line"></div>
+                    <div class="face-reticle">
+                        <div class="corner top-left"></div>
+                        <div class="corner top-right"></div>
+                        <div class="corner bottom-left"></div>
+                        <div class="corner bottom-right"></div>
+                        <div class="target-crosshair"></div>
+                    </div>
+                </div>
+            </div>
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>Access Registry</h2>
-        </div>
-        <div class="log-list" id="logList">
-            <!-- Logs injected here via JS -->
-        </div>
-    </aside>
+            <div class="controls-overlay">
+                <button class="btn btn-register" id="btnRegister">1. SET MASTER IDENTITY</button>
+                <button class="btn btn-scan" id="btnScan">2. REQUEST VAULT ACCESS</button>
+                <button class="btn btn-lock" id="btnLock">COMMAND: LOCKDOWN</button>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>INCIDENT LOGS</h2>
+                <div class="blink-dot"></div>
+            </div>
+            <div class="terminal-box" id="logList">
+                <!-- Logs injected here -->
+            </div>
+        </aside>
+    </div>
 </div>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>

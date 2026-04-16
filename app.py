@@ -7,12 +7,11 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Fallback in-memory storage for Vercel (Serverless ephemeral environment requirement)
-# On Vercel, the disk is entirely Read-Only except for /tmp which is severely constrained. 
+# Fallback in-memory storage for Vercel
 SYSTEM_LOCKED = True
 ACCESS_LOGS = []
+REGISTERED_HIST = None # To store biometric signature
 
-# Ensure Haar Cascade is available
 cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 face_cascade = cv2.CascadeClassifier(cascade_path)
 
@@ -22,12 +21,27 @@ def log_access(action, status, user="Unknown"):
     ACCESS_LOGS.insert(0, {'timestamp': timestamp, 'action': action, 'status': status, 'user': user})
     ACCESS_LOGS = ACCESS_LOGS[:15]
 
-def set_lock_state(is_locked):
-    global SYSTEM_LOCKED
-    SYSTEM_LOCKED = is_locked
+def extract_face_hist(image_b64):
+    image_data = image_b64.split(',')[1]
+    nparr = np.frombuffer(base64.b64decode(image_data), np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-def get_lock_state():
-    return SYSTEM_LOCKED
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
+    if len(faces) == 0:
+        return None
+
+    # Get largest face
+    faces = sorted(faces, key=lambda f: f[2]*f[3], reverse=True)
+    x, y, w, h = faces[0]
+    face_img = img[y:y+h, x:x+w]
+    face_img = cv2.resize(face_img, (100, 100))
+    
+    # Calculate 3D Color Histogram for structural/light comparison
+    hist = cv2.calcHist([face_img], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+    cv2.normalize(hist, hist)
+    return hist
 
 @app.route('/')
 def index():
@@ -35,46 +49,67 @@ def index():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    return jsonify({'is_locked': get_lock_state()})
+    return jsonify({
+        'is_locked': SYSTEM_LOCKED,
+        'has_registered_identity': REGISTERED_HIST is not None
+    })
 
 @app.route('/api/logs', methods=['GET'])
 def get_logs():
     return jsonify({'logs': ACCESS_LOGS})
 
-@app.route('/api/scan', methods=['POST'])
-def scan_face():
+@app.route('/api/register', methods=['POST'])
+def register_face():
+    global REGISTERED_HIST
     data = request.json
     if 'image' not in data:
         return jsonify({'error': 'No image provided'}), 400
 
     try:
-        # Parse base64
-        image_data = data['image'].split(',')[1]
-        nparr = np.frombuffer(base64.b64decode(image_data), np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        hist = extract_face_hist(data['image'])
+        if hist is None:
+            return jsonify({'success': False, 'message': 'NO FACE DETECTED. BIOMETRIC ENCODING FAILED.'})
 
-        # Detect faces
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        REGISTERED_HIST = hist
+        log_access('Identity Registration', 'GRANTED', 'Vault Master')
+        return jsonify({'success': True, 'message': 'BIOMETRIC SIGNATURE ENCODED SECURELY.'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-    if len(faces) > 0:
-        authorized = True
-        user = "Authorized Resident"
+@app.route('/api/scan', methods=['POST'])
+def scan_face():
+    global SYSTEM_LOCKED
+    data = request.json
+    
+    if REGISTERED_HIST is None:
+        return jsonify({'success': False, 'message': 'NO MASTER IDENTITY IN VAULT MEMORY.'})
+
+    try:
+        hist = extract_face_hist(data['image'])
+        if hist is None:
+            log_access('Vault Access Attempt', 'DENIED', 'Unknown Entity')
+            return jsonify({'success': False, 'message': 'NO FACE DETECTED. AREA SECURE.'})
+
+        # Compare Histograms using Correlation calculation
+        similarity = cv2.compareHist(REGISTERED_HIST, hist, cv2.HISTCMP_CORREL)
         
-        if authorized:
-            set_lock_state(False)
-            log_access('Face Scan', 'GRANTED', user)
-            return jsonify({'success': True, 'message': 'Access Granted. Welcome home!', 'faces_detected': len(faces), 'user': user})
-    else:
-        log_access('Face Scan', 'DENIED', 'No Face Detected')
-        return jsonify({'success': False, 'message': 'No face detected. Please look at the camera.', 'faces_detected': len(faces) if 'faces' in locals() else 0})
+        # 0.6 is a balanced threshold for histograms
+        if similarity > 0.60:
+            SYSTEM_LOCKED = False
+            log_access('Vault Access Attempt', 'GRANTED', 'Vault Master')
+            return jsonify({'success': True, 'message': f'ACCESS GRANTED. MATCH RATING: {int(similarity*100)}%', 'match': True})
+        else:
+            log_access('Vault Access Attempt', 'DENIED', f'Unknown (Match: {int(similarity*100)}%)')
+            return jsonify({'success': False, 'message': f'INTRUDER DETECTED. MATCH RATING: {int(similarity*100)}%', 'match': False})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/lock', methods=['POST'])
 def lock_system():
-    set_lock_state(True)
-    log_access('Manual Override', 'LOCKED', 'Admin')
+    global SYSTEM_LOCKED
+    SYSTEM_LOCKED = True
+    log_access('Vault Lockdown', 'LOCKED', 'System Admin')
     return jsonify({'success': True, 'is_locked': True})
 
 if __name__ == '__main__':

@@ -1,11 +1,13 @@
 const video = document.getElementById('webcam');
 const canvas = document.getElementById('canvas');
+const btnRegister = document.getElementById('btnRegister');
 const btnScan = document.getElementById('btnScan');
 const btnLock = document.getElementById('btnLock');
 const scanOverlay = document.getElementById('scanOverlay');
 const lockStatus = document.getElementById('lockStatus');
 const logList = document.getElementById('logList');
 const systemMessage = document.getElementById('systemMessage');
+const hasIdentity = document.getElementById('hasIdentity');
 
 let isScanning = false;
 
@@ -17,12 +19,10 @@ async function setupWebcam() {
         });
         video.srcObject = stream;
     } catch (err) {
-        console.error("Error accessing webcam: ", err);
-        showMessage("Camera Access Denied or Unavailable", true);
+        showMessage("CRITICAL: VISUAL SENSOR DISCONNECTED", true);
     }
 }
 
-// Fetch and update system status
 async function updateStatus() {
     try {
         const res = await fetch('/api/status');
@@ -30,17 +30,22 @@ async function updateStatus() {
         
         if (data.is_locked) {
             lockStatus.className = 'status-indicator status-locked';
-            lockStatus.querySelector('.status-text').innerText = 'SYSTEM LOCKED';
+            lockStatus.querySelector('.status-text').innerText = 'VAULT SECURED';
         } else {
             lockStatus.className = 'status-indicator status-unlocked';
-            lockStatus.querySelector('.status-text').innerText = 'SYSTEM UNLOCKED';
+            lockStatus.querySelector('.status-text').innerText = 'VAULT OPENED';
         }
-    } catch (e) {
-        console.error("Failed to update status", e);
-    }
+
+        if (data.has_registered_identity) {
+            hasIdentity.className = 'badge active';
+            hasIdentity.innerText = "MASTER BIOMETRIC LOADED";
+        } else {
+            hasIdentity.className = 'badge';
+            hasIdentity.innerText = "NO MASTER BIOMETRIC SET";
+        }
+    } catch (e) { console.error(e); }
 }
 
-// Fetch and update logs
 async function updateLogs() {
     try {
         const res = await fetch('/api/logs');
@@ -55,36 +60,41 @@ async function updateLogs() {
             
             div.className = `log-item ${logClass}`;
             
-            // Format UTC timestamp locally
             let dateStr = log.timestamp;
             if (!dateStr.endsWith('Z')) dateStr += 'Z';
-            const date = new Date(dateStr).toLocaleString();
+            const date = new Date(dateStr).toLocaleTimeString();
             
             div.innerHTML = `
-                <div class="log-time">${date}</div>
-                <div class="log-details">
-                    <span class="log-user">${log.user}</span>
-                    <span class="log-status">${log.status}</span>
-                </div>
+                <div class="log-time">[${date}] SYSTEM LOG</div>
+                <div>>> ${log.action}</div>
+                <div>>> ENTITY: ${log.user}</div>
+                <div>>> STATUS: ${log.status}</div>
             `;
             logList.appendChild(div);
         });
-    } catch (e) {
-        console.error("Failed to update logs", e);
-    }
+    } catch (e) { console.error(e); }
 }
 
-function showMessage(msg, isError = false) {
+function showMessage(msg, isSuccess = false) {
     systemMessage.innerText = msg;
-    systemMessage.style.color = isError ? 'var(--error-red)' : 'var(--primary-cyan)';
-    systemMessage.style.borderColor = isError ? 'var(--error-red)' : 'var(--primary-cyan)';
+    if(isSuccess) {
+        systemMessage.style.color = 'var(--success-green)';
+        systemMessage.style.borderColor = 'var(--success-green)';
+        systemMessage.style.boxShadow = '0 0 30px rgba(0,255,68,0.5)';
+    } else {
+        systemMessage.style.color = 'var(--primary-red)';
+        systemMessage.style.borderColor = 'var(--primary-red)';
+        systemMessage.style.boxShadow = '0 0 30px rgba(255,0,0,0.5)';
+    }
+    
     systemMessage.classList.add('show');
     
-    // Voice feedback if supported
     if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(msg);
-        utterance.rate = 0.95;
-        utterance.pitch = 1.0;
+        // Computer voice parameters
+        let msgToSpeek = msg.replace(/[^a-zA-Z ]/g, "");
+        const utterance = new SpeechSynthesisUtterance(msgToSpeek);
+        utterance.rate = 1.1;
+        utterance.pitch = 0.5;
         speechSynthesis.speak(utterance);
     }
     
@@ -93,73 +103,68 @@ function showMessage(msg, isError = false) {
     }, 4000);
 }
 
-// Perform scan action
-async function performScan() {
+function captureFrame() {
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+async function performTask(endpoint, button, loadingText) {
     if (isScanning) return;
-    
     isScanning = true;
-    scanOverlay.classList.add('scanning');
-    btnScan.innerText = 'Scanning...';
-    btnScan.disabled = true;
     
-    // Wait for animation to cycle a bit
+    scanOverlay.classList.add('scanning');
+    const originalText = button.innerText;
+    button.innerText = loadingText;
+    
+    // Simulate biometric scan duration
     setTimeout(async () => {
-        // Capture frame
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const imageData = captureFrame();
         
         try {
-            const res = await fetch('/api/scan', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData })
             });
             const result = await res.json();
             
-            if (result.success) {
-                showMessage(result.message);
-            } else {
-                showMessage(result.message, true);
+            showMessage(result.message, result.success);
+            
+            if (result.success && endpoint === '/api/scan') {
+                // If vault opens, dramatic effect
+                // play unlock sound if added
             }
         } catch (err) {
-            showMessage("System Error. Authentication failed.", true);
-            console.error(err);
+            showMessage("NETWORK FAILURE. COM-LINK LOST.", false);
         } finally {
             isScanning = false;
             scanOverlay.classList.remove('scanning');
-            btnScan.innerText = 'Initiate Scan';
-            btnScan.disabled = false;
-            
-            // Refresh dashboard
+            button.innerText = originalText;
             updateStatus();
             updateLogs();
         }
-    }, 2000); // 2 second scan delay for visual effect
+    }, 2500);
 }
 
-async function lockSystem() {
+btnRegister.addEventListener('click', () => performTask('/api/register', btnRegister, 'ENCODING BIOMETRICS...'));
+btnScan.addEventListener('click', () => performTask('/api/scan', btnScan, 'VERIFYING IDENTITY...'));
+
+btnLock.addEventListener('click', async () => {
     try {
         await fetch('/api/lock', { method: 'POST' });
-        showMessage("System secured.", false);
+        showMessage("VAULT INITIATING LOCKDOWNPROTOCOL", false);
         updateStatus();
         updateLogs();
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// Event Listeners
-btnScan.addEventListener('click', performScan);
-btnLock.addEventListener('click', lockSystem);
+    } catch (e) { console.error(e); }
+});
 
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
     setupWebcam();
     updateStatus();
     updateLogs(); 
-    setInterval(updateLogs, 10000); // Poll logs periodically
+    setInterval(updateLogs, 5000); 
 });

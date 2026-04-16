@@ -71,10 +71,23 @@
                          <button class="temp-btn" id="tempUp">+</button>
                      </div>
                  </div>
-                 <div class="control-card interactive" id="cardLighting">
-                     <div class="card-icon">💡</div>
-                     <h3>Lighting</h3>
-                     <p id="lightingStatus">Mode: Muted Elegance</p>
+                 <div class="control-card" id="cardLightingHub">
+                     <div class="card-icon" style="margin-bottom: 5px;">💡</div>
+                     <h3 style="margin-bottom: 5px;">Lighting Hub</h3>
+                     <div class="lighting-switches">
+                         <div class="switch-row">
+                             <span>Main Overhead</span>
+                             <label class="switch"><input type="checkbox" id="switchMain"><span class="slider"></span></label>
+                         </div>
+                         <div class="switch-row">
+                             <span>Neon Ambience</span>
+                             <label class="switch"><input type="checkbox" id="switchNeon"><span class="slider"></span></label>
+                         </div>
+                         <div class="switch-row">
+                             <span>Exterior Floods</span>
+                             <label class="switch"><input type="checkbox" id="switchFlood" checked><span class="slider"></span></label>
+                         </div>
+                     </div>
                  </div>
              </div>
              

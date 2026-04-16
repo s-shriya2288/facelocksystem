@@ -11,41 +11,44 @@ const logList = document.getElementById('logList');
 
 // Interactive Smart Cards
 const cardClimate = document.getElementById('cardClimate');
-const cardLighting = document.getElementById('cardLighting');
 const climateStatus = document.getElementById('climateStatus');
-const lightingStatus = document.getElementById('lightingStatus');
 
 let isScanning = false;
 let masterHistogram = null;
 
 /* ---------------- INTERACTIVE SMART HOME SYSTEM ---------------- */
 
-// Lighting Themes Logic
-const themes = [
-    { name: 'Muted Elegance', class: '', icon: '💡' },
-    { name: 'Daylight Mode', class: 'theme-light', icon: '☀️' },
-    { name: 'Midnight Neon', class: 'theme-neon', icon: '🌙' }
-];
-let themeIdx = 0;
+// Lighting Hub Switches Logic
+const switchMain = document.getElementById('switchMain');
+const switchNeon = document.getElementById('switchNeon');
+const switchFlood = document.getElementById('switchFlood');
 
-cardLighting.addEventListener('click', () => {
-    themeIdx = (themeIdx + 1) % themes.length;
-    let newTheme = themes[themeIdx];
-    
-    document.body.className = newTheme.class; // Transform the entire website UI
-    
-    lightingStatus.innerText = `Mode: ${newTheme.name}`;
-    cardLighting.querySelector('.card-icon').innerText = newTheme.icon;
-    
-    cardLighting.classList.add('pulse');
-    setTimeout(() => cardLighting.classList.remove('pulse'), 300);
-    
-    addAuditLog(`Lighting Switched to ${newTheme.name}`, 'SUCCESS');
-    if ('speechSynthesis' in window) {
-        let msg = new SpeechSynthesisUtterance(`${newTheme.name} engaged.`);
-        msg.rate = 1.0; speechSynthesis.speak(msg);
+function updateLightingTheme() {
+    if (switchNeon.checked) {
+        document.body.className = 'theme-neon';
+    } else if (switchMain.checked) {
+        document.body.className = 'theme-light';
+    } else {
+        document.body.className = '';
     }
-});
+}
+
+function handleSwitch(name, element) {
+    element.addEventListener('change', () => {
+        updateLightingTheme();
+        const state = element.checked ? 'ON' : 'OFF';
+        addAuditLog(`${name} turned ${state}`, 'SUCCESS');
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            let msg = new SpeechSynthesisUtterance(`${name} ${state}.`);
+            msg.rate = 1.1; speechSynthesis.speak(msg);
+        }
+    });
+}
+
+handleSwitch('Main overhead lighting', switchMain);
+handleSwitch('Neon ambience', switchNeon);
+handleSwitch('Exterior floods', switchFlood);
 
 // Climate Control Logic
 let currentTemp = 72;
@@ -127,11 +130,9 @@ function secureVault() {
     homeLayer.classList.remove('active');
     
     // Reset lighting to elegant dark on exit
-    if (themeIdx !== 0) {
-        document.body.className = themes[0].class;
-        themeIdx = 0; lightingStatus.innerText = `Mode: ${themes[0].name}`;
-        cardLighting.querySelector('.card-icon').innerText = themes[0].icon;
-    }
+    switchMain.checked = false;
+    switchNeon.checked = false;
+    updateLightingTheme();
     
     showMessage("System Secured. Awaiting Biometric Validation.", null);
 }

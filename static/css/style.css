@@ -1,0 +1,395 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto:wght@300;400;700&display=swap');
+
+:root {
+    --bg-dark: #0a0e17;
+    --panel-bg: rgba(16, 24, 39, 0.65);
+    --primary-cyan: #00ffff;
+    --glow-cyan: rgba(0, 255, 255, 0.4);
+    --success-green: #00ff66;
+    --glow-green: rgba(0, 255, 102, 0.4);
+    --error-red: #ff3333;
+    --glow-red: rgba(255, 51, 51, 0.4);
+    --text-main: #e2e8f0;
+    --text-muted: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 255, 255, 0.05), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(0, 255, 102, 0.05), transparent 25%);
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    height: 85vh;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    grid-template-rows: auto 1fr;
+    gap: 24px;
+    padding: 24px;
+    background: var(--panel-bg);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: white;
+    text-shadow: 0 0 10px var(--glow-cyan);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.status-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.status-locked .status-dot {
+    background-color: var(--error-red);
+    box-shadow: 0 0 15px var(--glow-red), 0 0 30px var(--glow-red);
+}
+
+.status-locked .status-text {
+    color: var(--error-red);
+    text-shadow: 0 0 10px var(--glow-red);
+}
+
+.status-unlocked .status-dot {
+    background-color: var(--success-green);
+    box-shadow: 0 0 15px var(--glow-green), 0 0 30px var(--glow-green);
+}
+
+.status-unlocked .status-text {
+    color: var(--success-green);
+    text-shadow: 0 0 10px var(--glow-green);
+}
+
+.main-view {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.scan-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    display: none;
+}
+
+.scan-overlay.scanning {
+    display: block;
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background-color: var(--primary-cyan);
+    box-shadow: 0 0 20px 5px var(--glow-cyan);
+    animation: scanAnimation 2s infinite ease-in-out;
+}
+
+.face-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250px;
+    height: 250px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.scan-overlay.scanning .face-reticle {
+    border-color: rgba(0, 255, 255, 0.3);
+}
+
+.face-reticle::before,
+.face-reticle::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-color: var(--primary-cyan);
+    border-style: solid;
+    transition: all 0.3s;
+}
+
+.face-reticle::before {
+    top: -2px;
+    left: -2px;
+    border-width: 3px 0 0 3px;
+}
+
+.face-reticle::after {
+    bottom: -2px;
+    right: -2px;
+    border-width: 0 3px 3px 0;
+}
+
+.face-reticle .corners {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.face-reticle .corners::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 30px;
+    height: 30px;
+    border-top: 3px solid var(--primary-cyan);
+    border-right: 3px solid var(--primary-cyan);
+}
+
+.face-reticle .corners::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: -2px;
+    width: 30px;
+    height: 30px;
+    border-bottom: 3px solid var(--primary-cyan);
+    border-left: 3px solid var(--primary-cyan);
+}
+
+
+@keyframes scanAnimation {
+    0% { top: 10%; opacity: 0; }
+    10% { opacity: 1; }
+    50% { top: 90%; }
+    90% { opacity: 1; }
+    100% { top: 10%; opacity: 0; }
+}
+
+.controls-overlay {
+    position: absolute;
+    bottom: 30px;
+    z-index: 20;
+    display: flex;
+    gap: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 30px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+    text-transform: uppercase;
+}
+
+.btn:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: var(--primary-cyan);
+    box-shadow: 0 0 15px var(--glow-cyan);
+}
+
+.btn-scan {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: var(--primary-cyan);
+}
+
+.btn-lock {
+    background: rgba(255, 51, 51, 0.1);
+    border-color: var(--error-red);
+}
+
+.btn-lock:hover {
+    background: rgba(255, 51, 51, 0.2);
+    border-color: var(--error-red);
+    box-shadow: 0 0 15px var(--glow-red);
+}
+
+.sidebar {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebar-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    color: var(--primary-cyan);
+    letter-spacing: 1px;
+}
+
+.log-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.log-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid transparent;
+    font-size: 14px;
+}
+
+.log-item.granted { border-left-color: var(--success-green); }
+.log-item.denied { border-left-color: var(--error-red); }
+.log-item.locked { border-left-color: var(--text-muted); }
+
+.log-time {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.log-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.log-user { font-weight: 500; }
+
+.log-status {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.granted .log-status {
+    background: rgba(0, 255, 102, 0.1);
+    color: var(--success-green);
+}
+
+.denied .log-status {
+    background: rgba(255, 51, 51, 0.1);
+    color: var(--error-red);
+}
+
+.locked .log-status {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+.system-message {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--primary-cyan);
+    padding: 12px 24px;
+    border-radius: 30px;
+    color: var(--primary-cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    z-index: 30;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+}
+
+.system-message.show {
+    opacity: 1;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }

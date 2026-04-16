@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis | Advanced Face Recognition Lock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="brand">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <h1>Aegis OS</h1>
+        </div>
+        <div class="status-indicator status-locked" id="lockStatus">
+            <div class="status-dot"></div>
+            <span class="status-text">SYSTEM LOCKED</span>
+        </div>
+    </header>
+
+    <main class="main-view">
+        <div id="systemMessage" class="system-message">Face authenticated. Welcome.</div>
+        
+        <div class="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            
+            <div class="scan-overlay" id="scanOverlay">
+                <div class="scan-line"></div>
+                <div class="face-reticle">
+                    <div class="corners"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-overlay">
+            <button class="btn btn-scan" id="btnScan">Initiate Scan</button>
+            <button class="btn btn-lock" id="btnLock">Secure Lock</button>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Access Registry</h2>
+        </div>
+        <div class="log-list" id="logList">
+            <!-- Logs injected here via JS -->
+        </div>
+    </aside>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

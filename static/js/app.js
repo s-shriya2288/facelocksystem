@@ -11,7 +11,11 @@ const hasIdentity = document.getElementById('hasIdentity');
 
 let isScanning = false;
 
-// Initialize Webcam
+// Client-side Memory for Serverless Environment
+let masterHistogram = null;
+let isVaultLocked = true;
+let accessLogs = [];
+
 async function setupWebcam() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -23,56 +27,49 @@ async function setupWebcam() {
     }
 }
 
-async function updateStatus() {
-    try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        
-        if (data.is_locked) {
-            lockStatus.className = 'status-indicator status-locked';
-            lockStatus.querySelector('.status-text').innerText = 'VAULT SECURED';
-        } else {
-            lockStatus.className = 'status-indicator status-unlocked';
-            lockStatus.querySelector('.status-text').innerText = 'VAULT OPENED';
-        }
+function updateStatusUI() {
+    if (isVaultLocked) {
+        lockStatus.className = 'status-indicator status-locked';
+        lockStatus.querySelector('.status-text').innerText = 'VAULT SECURED';
+    } else {
+        lockStatus.className = 'status-indicator status-unlocked';
+        lockStatus.querySelector('.status-text').innerText = 'VAULT OPENED';
+    }
 
-        if (data.has_registered_identity) {
-            hasIdentity.className = 'badge active';
-            hasIdentity.innerText = "MASTER BIOMETRIC LOADED";
-        } else {
-            hasIdentity.className = 'badge';
-            hasIdentity.innerText = "NO MASTER BIOMETRIC SET";
-        }
-    } catch (e) { console.error(e); }
+    if (masterHistogram !== null) {
+        hasIdentity.className = 'badge active';
+        hasIdentity.innerText = "MASTER BIOMETRIC LOADED";
+    } else {
+        hasIdentity.className = 'badge';
+        hasIdentity.innerText = "NO MASTER BIOMETRIC SET";
+    }
 }
 
-async function updateLogs() {
-    try {
-        const res = await fetch('/api/logs');
-        const data = await res.json();
+function updateLogsUI() {
+    logList.innerHTML = '';
+    accessLogs.forEach(log => {
+        const div = document.createElement('div');
+        let logClass = 'locked';
+        if (log.status === 'GRANTED') logClass = 'granted';
+        if (log.status === 'DENIED') logClass = 'denied';
         
-        logList.innerHTML = '';
-        data.logs.forEach(log => {
-            const div = document.createElement('div');
-            let logClass = 'locked';
-            if (log.status === 'GRANTED') logClass = 'granted';
-            if (log.status === 'DENIED') logClass = 'denied';
-            
-            div.className = `log-item ${logClass}`;
-            
-            let dateStr = log.timestamp;
-            if (!dateStr.endsWith('Z')) dateStr += 'Z';
-            const date = new Date(dateStr).toLocaleTimeString();
-            
-            div.innerHTML = `
-                <div class="log-time">[${date}] SYSTEM LOG</div>
-                <div>>> ${log.action}</div>
-                <div>>> ENTITY: ${log.user}</div>
-                <div>>> STATUS: ${log.status}</div>
-            `;
-            logList.appendChild(div);
-        });
-    } catch (e) { console.error(e); }
+        div.className = `log-item ${logClass}`;
+        
+        div.innerHTML = `
+            <div class="log-time">[${log.time}] SYSTEM LOG</div>
+            <div>>> ${log.action}</div>
+            <div>>> ENTITY: ${log.entity}</div>
+            <div>>> STATUS: ${log.status}</div>
+        `;
+        logList.appendChild(div);
+    });
+}
+
+function addLog(action, status, entity) {
+    const time = new Date().toLocaleTimeString();
+    accessLogs.unshift({time, action, status, entity});
+    if (accessLogs.length > 15) accessLogs.pop();
+    updateLogsUI();
 }
 
 function showMessage(msg, isSuccess = false) {
@@ -90,8 +87,7 @@ function showMessage(msg, isSuccess = false) {
     systemMessage.classList.add('show');
     
     if ('speechSynthesis' in window) {
-        // Computer voice parameters
-        let msgToSpeek = msg.replace(/[^a-zA-Z ]/g, "");
+        let msgToSpeek = msg.replace(/[^a-zA-Z 0-9]/g, "");
         const utterance = new SpeechSynthesisUtterance(msgToSpeek);
         utterance.rate = 1.1;
         utterance.pitch = 0.5;
@@ -111,20 +107,16 @@ function captureFrame() {
     return canvas.toDataURL('image/jpeg', 0.9);
 }
 
-async function performTask(endpoint, button, loadingText) {
+async function handleRegister(button) {
     if (isScanning) return;
     isScanning = true;
-    
     scanOverlay.classList.add('scanning');
-    const originalText = button.innerText;
-    button.innerText = loadingText;
+    button.innerText = 'ENCODING BIOMETRICS...';
     
-    // Simulate biometric scan duration
     setTimeout(async () => {
         const imageData = captureFrame();
-        
         try {
-            const res = await fetch(endpoint, {
+            const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData })
@@ -133,38 +125,71 @@ async function performTask(endpoint, button, loadingText) {
             
             showMessage(result.message, result.success);
             
-            if (result.success && endpoint === '/api/scan') {
-                // If vault opens, dramatic effect
-                // play unlock sound if added
+            if (result.success) {
+                masterHistogram = result.histogram; // Save identity securely in local client state!
+                addLog('Identity Matrix Set', 'GRANTED', 'Vault Master');
+            } else {
+                addLog('Matrix Calibration', 'DENIED', 'Unknown Entity');
             }
         } catch (err) {
             showMessage("NETWORK FAILURE. COM-LINK LOST.", false);
         } finally {
             isScanning = false;
             scanOverlay.classList.remove('scanning');
-            button.innerText = originalText;
-            updateStatus();
-            updateLogs();
+            button.innerText = '1. SET MASTER IDENTITY';
+            updateStatusUI();
         }
     }, 2500);
 }
 
-btnRegister.addEventListener('click', () => performTask('/api/register', btnRegister, 'ENCODING BIOMETRICS...'));
-btnScan.addEventListener('click', () => performTask('/api/scan', btnScan, 'VERIFYING IDENTITY...'));
+async function handleScan(button) {
+    if (isScanning) return;
+    isScanning = true;
+    scanOverlay.classList.add('scanning');
+    button.innerText = 'VERIFYING IDENTITY...';
+    
+    setTimeout(async () => {
+        const imageData = captureFrame();
+        try {
+            const res = await fetch('/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, master_histogram: masterHistogram })
+            });
+            const result = await res.json();
+            
+            showMessage(result.message, result.success);
+            
+            if (result.match) {
+                isVaultLocked = false;
+                addLog('Vault Access Override', 'GRANTED', 'Vault Master');
+            } else {
+                addLog('Vault Access Attempt', 'DENIED', 'Unauthorized Sector Breach');
+            }
+        } catch (err) {
+            showMessage("NETWORK FAILURE. COM-LINK LOST.", false);
+        } finally {
+            isScanning = false;
+            scanOverlay.classList.remove('scanning');
+            button.innerText = '2. REQUEST VAULT ACCESS';
+            updateStatusUI();
+        }
+    }, 2500);
+}
 
-btnLock.addEventListener('click', async () => {
-    try {
-        await fetch('/api/lock', { method: 'POST' });
-        showMessage("VAULT INITIATING LOCKDOWNPROTOCOL", false);
-        updateStatus();
-        updateLogs();
-    } catch (e) { console.error(e); }
+btnRegister.addEventListener('click', () => handleRegister(btnRegister));
+btnScan.addEventListener('click', () => handleScan(btnScan));
+
+btnLock.addEventListener('click', () => {
+    isVaultLocked = true;
+    showMessage("VAULT SECURED. LOCKDOWN PROTOCOL ACTIVE.", false);
+    addLog('Manual Lockdown Trigger', 'LOCKED', 'System Admin');
+    updateStatusUI();
 });
 
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
     setupWebcam();
-    updateStatus();
-    updateLogs(); 
-    setInterval(updateLogs, 5000); 
+    updateStatusUI();
+    updateLogsUI(); 
 });

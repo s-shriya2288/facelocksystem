@@ -3,73 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROJECT O.M.E.G.A. | VAULT SECURE TERMINAL</title>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Aegis | Smart Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
-<div class="monitor-wrapper">
-    <div class="scanline"></div>
-    <div class="container">
-        <header>
-            <div class="brand">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary-red)" stroke-width="2" stroke-linecap="square">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                </svg>
-                <h1>OMEGA VAULT SUBSYSTEM</h1>
-            </div>
-            <div class="header-right">
-                <div id="hasIdentity" class="badge">NO MASTER BIOMETRIC SET</div>
-                <div class="status-indicator status-locked" id="lockStatus">
-                    <div class="status-hex"></div>
-                    <span class="status-text">VAULT SECURED</span>
+<div class="app-container">
+    <!-- AUTHENTICATION ZONE -->
+    <div class="auth-layer" id="authLayer">
+        <div class="glass-panel main-scanner">
+           <div class="top-indicator">
+               <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+               </svg>
+               <span>SECURED STATE</span>
+           </div>
+
+           <div class="camera-wrapper" id="cameraWrapper">
+               <video id="webcam" autoplay playsinline></video>
+               <div class="scan-bar"></div>
+           </div>
+           
+           <div class="controls">
+               <h2>Aegis Entryway</h2>
+               <p id="systemMessage">Awaiting Biometric Validation.</p>
+               <div class="btn-group">
+                   <button class="lux-btn" id="btnRegister">Set Master Face</button>
+                   <button class="lux-btn primary" id="btnScan">Unlock Home</button>
+               </div>
+           </div>
+        </div>
+    </div>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <!-- THE HOUSE / VAULT INTERIOR -->
+    <div class="home-layer" id="homeLayer">
+        <div class="glass-panel dashboard">
+             <div class="header">
+                 <div class="welcome-msg">
+                     <h2>Welcome Back</h2>
+                     <p>Aegis Security System is currently Disarmed.</p>
+                 </div>
+                 <button class="lux-btn" id="btnLock">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                     </svg>
+                     Lock & Secure
+                 </button>
+             </div>
+             <div class="smart-controls">
+                 <div class="control-card active">
+                     <div class="card-icon">🏠</div>
+                     <h3>Secret Vault</h3>
+                     <p>Status: DOORS OPEN</p>
+                 </div>
+                 <div class="control-card">
+                     <div class="card-icon">🌡️</div>
+                     <h3>Climate Control</h3>
+                     <p>Status: 72°F</p>
+                 </div>
+                 <div class="control-card">
+                     <div class="card-icon">💡</div>
+                     <h3>Lighting</h3>
+                     <p>Status: Muted Elegance</p>
+                 </div>
+             </div>
+             
+             <!-- Audit Log inline for the premium feel -->
+            <div class="audit-log">
+                <h3>Recent Activity</h3>
+                <div class="log-container" id="logList">
+                    <!-- Logs populated by JS -->
                 </div>
             </div>
-        </header>
-
-        <main class="main-view">
-            <div id="systemMessage" class="system-message">INITIALIZING...</div>
-            
-            <div class="video-container">
-                <video id="webcam" autoplay playsinline></video>
-                <div class="hud-overlay">
-                    <div class="hud-top-left">CAM_01 REC</div>
-                    <div class="hud-top-right">48.24°N 16.38°E</div>
-                    <div class="hud-bottom-left">SYS_TEMP: OPTIMAL</div>
-                    <div class="hud-bottom-right">SECURE_LINK: ACTIVE</div>
-                </div>
-                <canvas id="canvas" style="display: none;"></canvas>
-                
-                <div class="scan-overlay" id="scanOverlay">
-                    <div class="scan-grid"></div>
-                    <div class="scan-line"></div>
-                    <div class="face-reticle">
-                        <div class="corner top-left"></div>
-                        <div class="corner top-right"></div>
-                        <div class="corner bottom-left"></div>
-                        <div class="corner bottom-right"></div>
-                        <div class="target-crosshair"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="controls-overlay">
-                <button class="btn btn-register" id="btnRegister">1. SET MASTER IDENTITY</button>
-                <button class="btn btn-scan" id="btnScan">2. REQUEST VAULT ACCESS</button>
-                <button class="btn btn-lock" id="btnLock">COMMAND: LOCKDOWN</button>
-            </div>
-        </main>
-
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>INCIDENT LOGS</h2>
-                <div class="blink-dot"></div>
-            </div>
-            <div class="terminal-box" id="logList">
-                <!-- Logs injected here -->
-            </div>
-        </aside>
+        </div>
     </div>
 </div>
 

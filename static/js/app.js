@@ -48,23 +48,33 @@ cardLighting.addEventListener('click', () => {
 });
 
 // Climate Control Logic
-const temperatures = [72, 68, 65, 76];
-let tempIdx = 0;
+let currentTemp = 72;
+const tempDown = document.getElementById('tempDown');
+const tempUp = document.getElementById('tempUp');
 
-cardClimate.addEventListener('click', () => {
-    tempIdx = (tempIdx + 1) % temperatures.length;
-    let newTemp = temperatures[tempIdx];
-    
-    climateStatus.innerText = `Status: ${newTemp}°F`;
+function setTemperature(amount) {
+    currentTemp += amount;
+    climateStatus.innerText = `${currentTemp}°F`;
     
     cardClimate.classList.add('pulse');
     setTimeout(() => cardClimate.classList.remove('pulse'), 300);
     
-    addAuditLog(`Climate Adjusted to ${newTemp}°F`, 'SUCCESS');
+    addAuditLog(`Climate Adjusted to ${currentTemp}°F`, 'SUCCESS');
     if ('speechSynthesis' in window) {
-        let msg = new SpeechSynthesisUtterance(`Temperature set to ${newTemp} degrees.`);
-        msg.rate = 1.0; speechSynthesis.speak(msg);
+        window.speechSynthesis.cancel(); // Stop overlap
+        let msg = new SpeechSynthesisUtterance(`${currentTemp} degrees.`);
+        msg.rate = 1.1; speechSynthesis.speak(msg);
     }
+}
+
+tempDown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setTemperature(-1);
+});
+
+tempUp.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setTemperature(1);
 });
 
 /* ------------------------------------------------------------- */

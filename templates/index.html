@@ -54,21 +54,23 @@
                      Lock & Secure
                  </button>
              </div>
+             
+             <!-- Interactive Smart Home Modules! -->
              <div class="smart-controls">
-                 <div class="control-card active">
+                 <div class="control-card active" id="cardVault">
                      <div class="card-icon">🏠</div>
                      <h3>Secret Vault</h3>
                      <p>Status: DOORS OPEN</p>
                  </div>
-                 <div class="control-card">
+                 <div class="control-card interactive" id="cardClimate">
                      <div class="card-icon">🌡️</div>
                      <h3>Climate Control</h3>
-                     <p>Status: 72°F</p>
+                     <p id="climateStatus">Status: 72°F</p>
                  </div>
-                 <div class="control-card">
+                 <div class="control-card interactive" id="cardLighting">
                      <div class="card-icon">💡</div>
                      <h3>Lighting</h3>
-                     <p>Status: Muted Elegance</p>
+                     <p id="lightingStatus">Mode: Muted Elegance</p>
                  </div>
              </div>
              

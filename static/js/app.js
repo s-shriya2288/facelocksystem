@@ -14,7 +14,7 @@ const cardClimate = document.getElementById('cardClimate');
 const climateStatus = document.getElementById('climateStatus');
 
 let isScanning = false;
-let masterHistogram = null;
+let masterHistogram = JSON.parse(localStorage.getItem('aegisMasterIdentity')) || null;
 
 /* ---------------- INTERACTIVE SMART HOME SYSTEM ---------------- */
 
@@ -174,6 +174,7 @@ async function handleRegister(button) {
             
             if (result.success) {
                 masterHistogram = result.histogram;
+                localStorage.setItem('aegisMasterIdentity', JSON.stringify(masterHistogram));
                 showMessage(result.message, true);
                 addAuditLog('Master Identity Registered', 'SUCCESS');
             } else {

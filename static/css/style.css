@@ -143,6 +143,8 @@ body.theme-neon {
 .lux-btn.primary { background: var(--text-main); color: #020617; border: none; box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
 .lux-btn.primary:hover { border: none !important; opacity: 0.9; box-shadow: 0 15px 30px rgba(255,255,255,0.2); }
 
+.text-btn { background: transparent; border: none; color: var(--text-muted); font-size: 12px; margin-top: 15px; cursor: pointer; text-decoration: none; transition: color 0.3s; font-family: 'Montserrat', sans-serif; letter-spacing: 1px;}
+.text-btn:hover { color: var(--danger); text-decoration: underline; }
 
 /* Inside the Vault Layer */
 .home-layer {

@@ -3,6 +3,7 @@ const canvas = document.getElementById('canvas');
 const btnRegister = document.getElementById('btnRegister');
 const btnScan = document.getElementById('btnScan');
 const btnLock = document.getElementById('btnLock');
+const btnReset = document.getElementById('btnReset');
 const cameraWrapper = document.getElementById('cameraWrapper');
 const systemMessage = document.getElementById('systemMessage');
 const authLayer = document.getElementById('authLayer');
@@ -84,6 +85,8 @@ tempUp.addEventListener('click', (e) => {
 
 
 async function setupWebcam() {
+    btnReset.style.display = masterHistogram ? 'inline-block' : 'none';
+    
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { width: 640, height: 480, facingMode: 'user' } 
@@ -175,6 +178,7 @@ async function handleRegister(button) {
             if (result.success) {
                 masterHistogram = result.histogram;
                 localStorage.setItem('aegisMasterIdentity', JSON.stringify(masterHistogram));
+                btnReset.style.display = 'inline-block';
                 showMessage(result.message, true);
                 addAuditLog('Master Identity Registered', 'SUCCESS');
             } else {
@@ -231,6 +235,19 @@ async function handleScan(button) {
 
 btnRegister.addEventListener('click', () => handleRegister(btnRegister));
 btnScan.addEventListener('click', () => handleScan(btnScan));
+
+btnReset.addEventListener('click', () => {
+    localStorage.removeItem('aegisMasterIdentity');
+    masterHistogram = null;
+    btnReset.style.display = 'none';
+    showMessage("Master Identity erased from local memory.", false);
+    addAuditLog('Master Identity Erased', 'SUCCESS');
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        let msg = new SpeechSynthesisUtterance("Biometric records erased.");
+        msg.rate = 1.1; speechSynthesis.speak(msg);
+    }
+});
 
 btnLock.addEventListener('click', () => {
     secureVault();
